@@ -6,7 +6,7 @@
  - ✅ implement parsing
  - ✅ implement Task Information Storage instance
  - [_] description in quotation
- - [_] Some edge cases
+ - [_] Some edge cases (stop 문제 있음, condition 확인하기)
  - [_] Store (start, stop, delete) commands to command in Taskinfo
  - [_] Make summary output prettier
 
