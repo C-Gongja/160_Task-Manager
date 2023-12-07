@@ -1,7 +1,10 @@
 # 160_TM
 
 ### CHECK LIST
-
+ - ✅ Implement Strategy Pattern
+ - ✅ implement Wrtie log (.log or .txt)
+ - ✅ implement parsing
+ - ✅ implement Task Information Storage instance
  - [_] description in quotation
  - [_] Some edge cases
  - [_] Store (start, stop, delete) commands to command in Taskinfo
