@@ -5,6 +5,7 @@
  - [_] description in quotation
  - [_] Some edge cases
  - [_] Store (start, stop, delete) commands to command in Taskinfo
+ - [_] Make summary output prettier
 
 ### Desing Pattern
    - Enum
