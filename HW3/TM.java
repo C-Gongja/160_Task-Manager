@@ -1,4 +1,7 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -202,14 +205,20 @@ class SummaryCommand implements CommandStrategy {
 
 	private static void summaryStatistic(List<TaskInfo> tasks) {
 		Map<TaskSizes, List<TaskInfo>> tasksBySize = tasks.stream()
-						.filter(task -> task.size != TaskSizes.NONE)
-						.collect(Collectors.groupingBy(TaskInfo::getSize));
+        .filter(task -> task.size != TaskSizes.NONE)
+        .collect(Collectors.groupingBy(
+                TaskInfo::getSize,
+                Collectors.filtering(task -> tasks.stream()
+											.filter(t -> t.getSize() == task.getSize()).count() > 1,
+                        Collectors.toList())
+        ));
 
-		System.out.println("\n----------------------------");
-		System.out.println("STATISTIC SUMMARY");
+		if(!tasksBySize.isEmpty()) {
+			System.out.println("\n----------------------------");
+			System.out.println("STATISTIC SUMMARY");
 
-		tasksBySize.forEach((size, sizeTasks) -> {
-			if (sizeTasks.size() > 1) {
+			tasksBySize.forEach((size, sizeTasks) -> {
+				if (sizeTasks.size() > 1) {
 				System.out.println("----------------------------");
 				System.out.println("\nSize: " + size);
 
@@ -219,6 +228,7 @@ class SummaryCommand implements CommandStrategy {
 				System.out.println("Avg Time: "+timeFormat((long)summary.getAverage()));
 			}
 		});
+		}
 	}
 
 	private static DoubleSummaryStatistics calcDuration(List<TaskInfo> tasks) {
@@ -350,30 +360,40 @@ class TaskInfo {
 	}
 	@Override
 	public String toString() {
-		return "\nTask name: " + taskName + '\n' +
-				"Description: " + description + '\n' +
-				"Size: " + size + '\n' +
-				"Total time spent: " + totalTime;
+		return String.format("\n%-20s : %s\n%-20s : %s\n%-20s : %s\n%-20s : %s",
+				"Task name",taskName,
+				"Description", description,
+				"Size", size,
+				"Total time spent", totalTime);
 	}
 }
 
 class LogParser {
 	private static List<String> readLogFile(String logfile) {
 		List<String> lines = new ArrayList<>();
+		// Check if the log file exists, create it if it doesn't
+		Path logFilePath = Paths.get(logfile);
+		if (!Files.exists(logFilePath)) {
+				try {
+						Files.createFile(logFilePath);
+				} catch (IOException e) {
+						System.err.println("Error creating log file '" + logfile + "'.");
+						System.exit(1);
+				}
+		}
+
 		try (BufferedReader br = new BufferedReader(new FileReader(logfile))) {
-			String line;
-			while ((line = br.readLine()) != null) {
-					lines.add(line);
-			}
-		} catch (FileNotFoundException e) {
-			System.err.println("Error: The log is not exists.");
-			System.exit(1);
+				String line;
+				while ((line = br.readLine()) != null) {
+						lines.add(line);
+				}
 		} catch (IOException e) {
-			System.err.println("Error reading log file '" + logfile + "'.");
-			System.exit(1);
+				System.err.println("Error reading log file '" + logfile + "'.");
+				System.exit(1);
 		}
 		return lines;
 	}
+	
 
 	public static List<TaskInfo> parse(String logfile) {
 		List<TaskInfo> tasks = new ArrayList<>();
@@ -420,7 +440,7 @@ class LogParser {
 			size = TaskSizes.valueOf(parts[3]);
 		} else if (command.equals("DESCRIBE")) {
 			description = (parts.length > 3) ? parts[3] : "";
-			size = (parts.length > 4) ? TaskSizes.valueOf(parts[4]) : TaskSizes.NONE;
+			size = (parts.length > 4) ? TaskSizes.valueOf((parts[4].toUpperCase())) : TaskSizes.NONE;
 		} else if (command.equals("RENAME")) {
 			prevName = taskName;
 			taskName = parts[3];
@@ -466,7 +486,7 @@ class LogParser {
 
 	final String updatedDescription = 
 		(newInfo.description != null && !newInfo.description.isEmpty())
-			? storedInfo.description + '\n' + newInfo.description 
+			? storedInfo.description + ' ' + newInfo.description 
 			: storedInfo.description;
 
 	final TaskSizes updatedSize = 
